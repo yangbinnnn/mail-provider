@@ -2,6 +2,7 @@ package http
 
 import (
 	"crypto/tls"
+	"net"
 	"net/http"
 	"net/smtp"
 	"net/textproto"
@@ -26,7 +27,12 @@ func configProcRoutes() {
 		subject := param.MustString(r, "subject")
 		content := param.MustString(r, "content")
 		tos = strings.Replace(tos, ",", ";", -1)
-		auth := smtp.PlainAuth("", cfg.Smtp.Username, cfg.Smtp.Password, cfg.Smtp.Addr)
+		host, _, err := net.SplitHostPort(cfg.Smtp.Addr)
+		if err != nil {
+			http.Error(w, "invalid smtp addr", http.StatusInternalServerError)
+			return
+		}
+		auth := smtp.PlainAuth("", cfg.Smtp.Username, cfg.Smtp.Password, host)
 		msg := &email.Email{
 			To:      strings.Split(tos, ","),
 			From:    cfg.Smtp.From,
@@ -34,9 +40,8 @@ func configProcRoutes() {
 			Text:    []byte(content),
 			Headers: textproto.MIMEHeader{},
 		}
-		var err error
 		if cfg.Smtp.TLS {
-			err = msg.SendWithTLS(cfg.Smtp.Addr, auth, &tls.Config{})
+			err = msg.SendWithTLS(cfg.Smtp.Addr, auth, &tls.Config{InsecureSkipVerify: true, ServerName: cfg.Smtp.Addr})
 		} else {
 			err = msg.Send(cfg.Smtp.Addr, auth)
 		}
