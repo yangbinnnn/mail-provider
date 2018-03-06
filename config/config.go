@@ -15,6 +15,7 @@ type HttpConfig struct {
 }
 
 type SmtpConfig struct {
+	TLS      bool   `json:"tls"`
 	Addr     string `json:"addr"`
 	Username string `json:"username"`
 	Password string `json:"password"`

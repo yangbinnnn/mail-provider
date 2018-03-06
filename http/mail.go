@@ -1,12 +1,15 @@
 package http
 
 import (
+	"crypto/tls"
 	"net/http"
+	"net/smtp"
+	"net/textproto"
 	"strings"
 
-	"github.com/open-falcon/mail-provider/config"
-	"github.com/toolkits/smtp"
+	"github.com/jordan-wright/email"
 	"github.com/toolkits/web/param"
+	"github.com/yangbinnnn/mail-provider/config"
 )
 
 func configProcRoutes() {
@@ -23,9 +26,20 @@ func configProcRoutes() {
 		subject := param.MustString(r, "subject")
 		content := param.MustString(r, "content")
 		tos = strings.Replace(tos, ",", ";", -1)
-
-		s := smtp.New(cfg.Smtp.Addr, cfg.Smtp.Username, cfg.Smtp.Password)
-		err := s.SendMail(cfg.Smtp.From, tos, subject, content)
+		auth := smtp.PlainAuth("", cfg.Smtp.Username, cfg.Smtp.Password, cfg.Smtp.Addr)
+		msg := &email.Email{
+			To:      strings.Split(tos, ","),
+			From:    cfg.Smtp.From,
+			Subject: subject,
+			Text:    []byte(content),
+			Headers: textproto.MIMEHeader{},
+		}
+		var err error
+		if cfg.Smtp.TLS {
+			err = msg.SendWithTLS(cfg.Smtp.Addr, auth, &tls.Config{})
+		} else {
+			err = msg.Send(cfg.Smtp.Addr, auth)
+		}
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {

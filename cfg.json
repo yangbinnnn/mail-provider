@@ -5,9 +5,10 @@
         "token": ""
     },
     "smtp": {
-        "addr": "mail.example.com:25",
-        "username": "falcon@example.com",
-        "password": "123456",
-        "from": "falcon@example.com"
+        "tls": true,
+        "addr": "x@y.com:465",
+        "username": "xxx",
+        "password": "yyy",
+        "from": "x@y.com"
     }
 }
